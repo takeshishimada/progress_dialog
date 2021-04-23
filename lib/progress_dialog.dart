@@ -14,8 +14,6 @@ Alignment _progressWidgetAlignment = Alignment.centerLeft;
 
 TextDirection _direction = TextDirection.ltr;
 
-bool _isShowing = false;
-BuildContext _context, _dismissingContext;
 ProgressDialogType _progressDialogType;
 bool _barrierDismissible = true, _showLogs = false;
 
@@ -36,6 +34,8 @@ Widget _progressWidget = Image.asset(
 
 class ProgressDialog {
   _Body _dialog;
+
+  BuildContext _context, _dismissingContext;
 
   ProgressDialog(BuildContext context,
       {ProgressDialogType type,
@@ -66,7 +66,7 @@ class ProgressDialog {
       Curve insetAnimCurve,
       EdgeInsets padding,
       Alignment progressWidgetAlignment}) {
-    if (_isShowing) return;
+    if (isShowing()) return;
     if (_progressDialogType == ProgressDialogType.Download) {
       _progress = progress ?? _progress;
     }
@@ -104,17 +104,17 @@ class ProgressDialog {
     _messageStyle = messageTextStyle ?? _messageStyle;
     _progressTextStyle = progressTextStyle ?? _progressTextStyle;
 
-    if (_isShowing) _dialog.update();
+    if (isShowing()) _dialog.update();
   }
 
   bool isShowing() {
-    return _isShowing;
+    return _dialog?.isShowing ?? false;
   }
 
   Future<bool> hide() async {
     try {
-      if (_isShowing) {
-        _isShowing = false;
+      if (isShowing()) {
+        _dialog?.isShowing = false;
         Navigator.of(_dismissingContext).pop();
         if (_showLogs) debugPrint('ProgressDialog dismissed');
         return Future.value(true);
@@ -131,7 +131,7 @@ class ProgressDialog {
 
   Future<bool> show() async {
     try {
-      if (!_isShowing) {
+      if (!isShowing()) {
         _dialog = new _Body();
         showDialog<dynamic>(
           context: _context,
@@ -156,14 +156,14 @@ class ProgressDialog {
         // [Default transitionDuration of DialogRoute]
         await Future.delayed(Duration(milliseconds: 200));
         if (_showLogs) debugPrint('ProgressDialog shown');
-        _isShowing = true;
+        _dialog?.isShowing = true;
         return true;
       } else {
         if (_showLogs) debugPrint("ProgressDialog already shown/showing");
         return false;
       }
     } catch (err) {
-      _isShowing = false;
+      _dialog?.isShowing = false;
       debugPrint('Exception while showing the dialog');
       debugPrint(err.toString());
       return false;
@@ -174,6 +174,7 @@ class ProgressDialog {
 // ignore: must_be_immutable
 class _Body extends StatefulWidget {
   _BodyState _dialog = _BodyState();
+  bool isShowing = false;
 
   update() {
     _dialog.update();
@@ -192,7 +193,7 @@ class _BodyState extends State<_Body> {
 
   @override
   void dispose() {
-    _isShowing = false;
+    widget.isShowing = false;
     if (_showLogs) debugPrint('ProgressDialog dismissed by back button');
     super.dispose();
   }
